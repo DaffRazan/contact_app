@@ -164,6 +164,7 @@ class _UpdateContactDetailState extends State<UpdateContactDetail> {
 
                   // Return the updated contact to the previous screen
                   Get.back(result: updatedContact);
+                  //
                 },
               ),
               const SizedBox(height: 20),
