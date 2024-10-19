@@ -1,8 +1,11 @@
+import 'package:contact_app/models/contact.dart';
 import 'package:contact_app/screens/update_contact_screen.dart';
 import 'package:contact_app/utils/color.dart';
+import 'package:contact_app/utils/const.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -12,6 +15,36 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  String loggedInUserName = "";
+  String loggedInEmail = '';
+  String loggedInDob = '';
+  String firstName = '';
+  String secondName = '';
+  String loggedInId = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLoggedInUser();
+  }
+
+  Future<void> _loadLoggedInUser() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      loggedInUserName = prefs.getString(loginUsernamePrefKey) ?? 'Guest';
+      loggedInEmail = prefs.getString(loginEmailPrefKey) ?? '';
+      loggedInDob = prefs.getString(loginDobPrefKey) ?? '';
+      loggedInId = prefs.getString(loginPrefKey) ?? '';
+
+      // Split the string into a list of words
+      List<String> words = loggedInUserName.split(' ');
+
+      // Get the first and second words
+      firstName = words.isNotEmpty ? words[0] : '';
+      secondName = words.length > 1 ? words[1] : '';
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,7 +63,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: AppThemeColor.bluePrimary,
                 ),
                 child: Text(
-                  'AS',
+                  loggedInUserName.isNotEmpty ? loggedInUserName[0] : '',
                   style: TextStyle(
                     fontSize: 40,
                     color: AppThemeColor.white,
@@ -38,11 +71,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              const Text('Avi Savannah'),
+              Text(loggedInUserName),
               const SizedBox(height: 10),
-              const Text('avisavvanah@gmail.com'),
+              Text(loggedInEmail),
               const SizedBox(height: 10),
-              const Text('26/6/1998'),
+              Text(loggedInDob),
               const SizedBox(height: 25),
               SizedBox(
                 width: double.infinity,
@@ -56,8 +89,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       vertical: 15,
                     ),
                   ),
-                  onPressed: () {
-                    Get.to(() => const UpdateContactDetail());
+                  onPressed: () async {
+                    final updatedContact =
+                        await Get.to<Contact>(() => UpdateContactDetail(
+                              firstName: firstName,
+                              lastName: secondName,
+                              email: loggedInEmail,
+                              dob: loggedInDob,
+                            ));
+
+                    if (updatedContact != null) {
+                      _updateContact(updatedContact);
+                    }
                   },
                   child: Text(
                     'Update my detail',
@@ -73,5 +116,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
+  }
+
+  void _updateContact(Contact updatedContact) {
+    setState(() {
+      loggedInUserName =
+          '${updatedContact.firstName} ${updatedContact.lastName}';
+      loggedInEmail = updatedContact.email ?? '';
+      loggedInDob = updatedContact.dob ?? '';
+
+      firstName = updatedContact.firstName;
+      secondName = updatedContact.lastName;
+    });
   }
 }
