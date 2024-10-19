@@ -1,11 +1,13 @@
 import 'package:contact_app/screens/add_contact_screen.dart';
 import 'package:contact_app/screens/contact_screen.dart';
+import 'package:contact_app/screens/login_screen.dart';
 import 'package:contact_app/screens/profile_screen.dart';
 import 'package:contact_app/utils/color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -74,12 +76,19 @@ class _HomeScreenState extends State<HomeScreen> {
           _pageTitle[_currentIndex],
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        elevation: 1,
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         actions: (_currentIndex == 1)
             ? [
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () async {
+                    SharedPreferences prefs =
+                        await SharedPreferences.getInstance();
+                    await prefs.clear();
+
+                    // Navigate back to the login screen
+                    Get.offAll(() => const LoginScreen());
+                  },
                   child: Text(
                     'Logout',
                     style: GoogleFonts.poppins(
@@ -90,7 +99,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ]
             : [],
-        automaticallyImplyLeading: true,
       ),
       body: _pages[_currentIndex],
     );
