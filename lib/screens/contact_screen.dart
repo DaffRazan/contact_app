@@ -1,67 +1,53 @@
-import 'dart:convert';
-
+import 'package:contact_app/cubits/contact/contact_cubit.dart';
 import 'package:contact_app/models/contact.dart';
 import 'package:contact_app/screens/update_contact_screen.dart';
 import 'package:contact_app/utils/color.dart';
 import 'package:contact_app/utils/const.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' as root_bundle;
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ContactScreen extends StatefulWidget {
-  const ContactScreen({super.key});
+  final ContactCubit contactCubit;
+
+  const ContactScreen({super.key, required this.contactCubit});
 
   @override
   State<ContactScreen> createState() => _ContactScreenState();
 }
 
 class _ContactScreenState extends State<ContactScreen> {
-  List<Contact> contacts = [];
-
-  String searchQuery = "";
   String loggedInName = '';
+  String loggedInId = '';
 
   @override
   void initState() {
     super.initState();
-    loadContactData();
+
+    getUsername();
+    getLoggedInId();
+
+    widget.contactCubit.getAndSortContactsAlphabetically();
   }
 
-  Future<void> loadContactData() async {
-    final jsonString =
-        await root_bundle.rootBundle.loadString('assets/data.json');
-    final List<dynamic> jsonResponse = json.decode(jsonString);
-
-    setState(() {
-      contacts = jsonResponse.map((data) => Contact.fromJson(data)).toList();
-    });
-
+  void getUsername() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     loggedInName = prefs.getString(loginUsernamePrefKey)!;
   }
 
+  Future<String> getLoggedInId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      loggedInId = prefs.getString(loginPrefKey) ?? '';
+    });
+
+    return loggedInId;
+  }
+
   @override
   Widget build(BuildContext context) {
-    List<Contact> filteredContacts = contacts
-        .where((contact) => ('${contact.firstName} ${contact.lastName}')
-            .toLowerCase()
-            .contains(searchQuery.toLowerCase()))
-        .toList();
-
-    // Sort contacts alphabetically by first letter
-    Map<String, List<Contact>> groupedContacts = {};
-    for (var contact in filteredContacts) {
-      String firstLetter = contact.firstName[0].toUpperCase();
-      if (groupedContacts[firstLetter] == null) {
-        groupedContacts[firstLetter] = [];
-      }
-      groupedContacts[firstLetter]!.add(contact);
-    }
-
-    // Sorted alphabetically
-    var sortedKeys = groupedContacts.keys.toList()..sort();
-
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.symmetric(
@@ -72,16 +58,36 @@ class _ContactScreenState extends State<ContactScreen> {
           children: [
             _buildSearchField(),
             const SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                itemCount: sortedKeys.length,
-                itemBuilder: (context, index) {
-                  String letter = sortedKeys[index];
-                  List<Contact> contactsForLetter = groupedContacts[letter]!;
+            BlocBuilder<ContactCubit, ContactState>(
+              bloc: widget.contactCubit,
+              builder: (context, state) {
+                if (state is ContactLoaded) {
+                  return Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: () async {
+                        await widget.contactCubit.getContactData();
 
-                  return buildContactGroup(letter, contactsForLetter);
-                },
-              ),
+                        widget.contactCubit.getAndSortContactsAlphabetically();
+                      },
+                      child: ListView.builder(
+                        itemCount: state.sortedKeys.length,
+                        itemBuilder: (context, index) {
+                          String letter = state.sortedKeys[index];
+
+                          return buildContactGroup(
+                              letter, state.groupedContacts[letter]!);
+                        },
+                      ),
+                    ),
+                  );
+                } else if (state is ContactLoading) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                } else {
+                  return const Center(child: Text('No contacts found.'));
+                }
+              },
             ),
           ],
         ),
@@ -109,9 +115,7 @@ class _ContactScreenState extends State<ContactScreen> {
         ),
       ),
       onChanged: (value) {
-        setState(() {
-          searchQuery = value;
-        });
+        widget.contactCubit.searchContact(value);
       },
     );
   }
@@ -151,18 +155,28 @@ class _ContactScreenState extends State<ContactScreen> {
   Widget _buildContactCard(Contact contact) {
     return InkWell(
       onTap: () async {
-        final updatedContact = await Get.to<Contact>(
+        final updatedData = await Get.to<String>(
           () => UpdateContactDetail(
-              firstName: contact.firstName,
-              lastName: contact.lastName,
-              email: contact.email ?? '',
-              dob: contact.dob ?? ''),
+            contact: contact,
+            contactCubit: widget.contactCubit,
+            loggedInId: loggedInId,
+          ),
         );
 
-        if (updatedContact != null) {
-          setState(() {
-            contact = updatedContact;
-          });
+        if (updatedData != null) {
+          if (contact.id == loggedInId) {
+            setState(() async {
+              loggedInName = updatedData;
+
+              // Saved logged in data user
+              SharedPreferences prefs = await SharedPreferences.getInstance();
+              await prefs.setString(loginPrefKey, contact.id);
+              await prefs.setString(loginUsernamePrefKey,
+                  '${contact.firstName} ${contact.lastName}');
+              await prefs.setString(loginEmailPrefKey, contact.email!);
+              await prefs.setString(loginDobPrefKey, contact.dob!);
+            });
+          }
         }
       },
       child: Padding(
