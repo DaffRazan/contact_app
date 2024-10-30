@@ -1,13 +1,19 @@
+import 'dart:math';
+
+import 'package:contact_app/cubits/contact/contact_cubit.dart';
+import 'package:contact_app/models/contact.dart';
 import 'package:contact_app/utils/color.dart';
 import 'package:contact_app/widgets/buttons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 class AddContactScreen extends StatefulWidget {
-  const AddContactScreen({super.key});
+  final ContactCubit contactCubit;
+
+  const AddContactScreen({super.key, required this.contactCubit});
 
   @override
   State<AddContactScreen> createState() => _AddContactScreenState();
@@ -22,6 +28,15 @@ class _AddContactScreenState extends State<AddContactScreen> {
   final List<Map<String, String>> contacts = []; // List to hold contact data
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+  final Random _random = Random();
+  String _randomString = '';
+
+  @override
+  void initState() {
+    super.initState();
+    generateRandomString(24);
+  }
+
   @override
   void dispose() {
     firstNameController.dispose();
@@ -29,26 +44,6 @@ class _AddContactScreenState extends State<AddContactScreen> {
     dateController.dispose();
     emailController.dispose();
     super.dispose();
-  }
-
-  void _addContact() {
-    if (_formKey.currentState!.validate()) {
-      // Save the contact data
-      setState(() {
-        contacts.add({
-          'firstName': firstNameController.text,
-          'lastName': lastNameController.text,
-          'email': emailController.text,
-          'dob': dateController.text,
-        });
-
-        // Clear the text fields after saving
-        firstNameController.clear();
-        lastNameController.clear();
-        emailController.clear();
-        dateController.clear();
-      });
-    }
   }
 
   String? _errorText;
@@ -98,110 +93,129 @@ class _AddContactScreenState extends State<AddContactScreen> {
         backgroundColor: Colors.transparent,
         automaticallyImplyLeading: true,
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            vertical: 30,
-            horizontal: 30,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.all(26),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              vertical: 30,
+              horizontal: 30,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(26),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppThemeColor.bluePrimary,
+                    ),
+                    child: (firstNameController.text.isNotEmpty)
+                        ? Text(
+                            firstNameController.text[0].toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 40,
+                              color: AppThemeColor.white,
+                            ),
+                          )
+                        : SvgPicture.asset(
+                            'assets/icons/ic_human.svg',
+                            color: AppThemeColor.white,
+                            height: 40,
+                            width: 40,
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 37),
+                Text(
+                  'Main Information',
+                  style: TextStyle(
+                    fontStyle: FontStyle.italic,
                     color: AppThemeColor.bluePrimary,
                   ),
-                  child: (firstNameController.text.isNotEmpty)
-                      ? Text(
-                          firstNameController.text[0].toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 40,
-                            color: AppThemeColor.white,
-                          ),
-                        )
-                      : SvgPicture.asset(
-                          'assets/icons/ic_human.svg',
-                          color: AppThemeColor.white,
-                          height: 40,
-                          width: 40,
-                        ),
                 ),
-              ),
-              const SizedBox(height: 37),
-              Text(
-                'Main Information',
-                style: TextStyle(
-                  fontStyle: FontStyle.italic,
-                  color: AppThemeColor.bluePrimary,
+                const Divider(),
+                _buildTextForm(
+                  hintText: 'Enter first name..',
+                  label: 'First Name',
+                  iconPath: 'assets/icons/ic_human.svg',
+                  controller: firstNameController,
+                  textInputType: TextInputType.name,
                 ),
-              ),
-              const Divider(),
-              _buildTextForm(
-                hintText: 'Enter first name..',
-                label: 'First Name',
-                iconPath: 'assets/icons/ic_human.svg',
-                controller: firstNameController,
-                textInputType: TextInputType.name,
-              ),
-              const SizedBox(height: 17),
-              _buildTextForm(
-                hintText: 'Enter last name..',
-                label: 'Last Name',
-                iconPath: 'assets/icons/ic_human.svg',
-                controller: lastNameController,
-                textInputType: TextInputType.name,
-              ),
-              const SizedBox(height: 26),
-              Text(
-                'Sub Information',
-                style: TextStyle(
-                  fontStyle: FontStyle.italic,
-                  color: AppThemeColor.bluePrimary,
+                const SizedBox(height: 17),
+                _buildTextForm(
+                  hintText: 'Enter last name..',
+                  label: 'Last Name',
+                  iconPath: 'assets/icons/ic_human.svg',
+                  controller: lastNameController,
+                  textInputType: TextInputType.name,
                 ),
-              ),
-              const Divider(),
-              _buildTextForm(
-                hintText: 'Enter email..',
-                label: 'Email',
-                errorText: _errorText ?? '',
-                iconPath: 'assets/icons/ic_email.svg',
-                controller: emailController,
-                textInputType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 17),
-              _buildTextForm(
-                hintText: 'Enter birthday..',
-                label: 'Date of Birth',
-                iconPath: 'assets/icons/ic_calendar.svg',
-                controller: dateController,
-                textInputType: TextInputType.text,
-              ),
-              const SizedBox(height: 170),
-              Buttons.buildPrimaryButton(
-                label: 'Save',
-                onPressed: () {
-                  if (firstNameController.text.isNotEmpty &&
-                      lastNameController.text.isNotEmpty &&
-                      dateController.text.isNotEmpty &&
-                      dateController.text.isNotEmpty) {
-                    _addContact();
-                  } else {
-                    Fluttertoast.showToast(
-                      msg: 'All fields must not empty!',
-                      backgroundColor: AppThemeColor.red,
-                    );
-                  }
-                },
-              ),
-              const SizedBox(height: 20),
-            ],
+                const SizedBox(height: 26),
+                Text(
+                  'Sub Information',
+                  style: TextStyle(
+                    fontStyle: FontStyle.italic,
+                    color: AppThemeColor.bluePrimary,
+                  ),
+                ),
+                const Divider(),
+                _buildTextForm(
+                  hintText: 'Enter email..',
+                  label: 'Email',
+                  errorText: _errorText ?? '',
+                  iconPath: 'assets/icons/ic_email.svg',
+                  controller: emailController,
+                  textInputType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 17),
+                _buildTextForm(
+                  hintText: 'Enter birthday..',
+                  label: 'Date of Birth',
+                  iconPath: 'assets/icons/ic_calendar.svg',
+                  controller: dateController,
+                  textInputType: TextInputType.text,
+                ),
+                const SizedBox(height: 170),
+                Buttons.buildPrimaryButton(
+                  label: 'Save',
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      if (firstNameController.text.isNotEmpty ||
+                          lastNameController.text.isNotEmpty ||
+                          dateController.text.isNotEmpty ||
+                          dateController.text.isNotEmpty) {
+                        setState(() {
+                          _randomString = generateRandomString(24);
+                        });
+
+                        widget.contactCubit.addNewContact(Contact(
+                          id: _randomString,
+                          firstName: firstNameController.text,
+                          lastName: lastNameController.text,
+                          email: emailController.text,
+                          dob: dateController.text,
+                        ));
+
+                        Get.back();
+                      }
+                    }
+                  },
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  String generateRandomString(int length) {
+    const chars =
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    return List.generate(
+        length, (index) => chars[_random.nextInt(chars.length)]).join();
   }
 
   Column _buildTextForm({
@@ -241,6 +255,12 @@ class _AddContactScreenState extends State<AddContactScreen> {
         TextFormField(
             controller: controller,
             keyboardType: textInputType,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Field must not null!';
+              }
+              return null;
+            },
             textInputAction: TextInputAction.next,
             decoration: InputDecoration(
               border: OutlineInputBorder(

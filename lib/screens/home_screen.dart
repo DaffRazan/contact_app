@@ -1,3 +1,4 @@
+import 'package:contact_app/cubits/contact/contact_cubit.dart';
 import 'package:contact_app/screens/add_contact_screen.dart';
 import 'package:contact_app/screens/contact_screen.dart';
 import 'package:contact_app/screens/login_screen.dart';
@@ -18,11 +19,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
-
-  final List<Widget> _pages = [
-    const ContactScreen(),
-    const ProfileScreen(),
-  ];
+  final ContactCubit _contactCubit = ContactCubit();
 
   final List<String> _pageTitle = [
     'My Contacts',
@@ -38,6 +35,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> pages = [
+      ContactScreen(contactCubit: _contactCubit),
+      ProfileScreen(
+        contactCubit: _contactCubit,
+      ),
+    ];
+
     return Scaffold(
       bottomNavigationBar: BottomNavigationBar(
         items: [
@@ -63,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           backgroundColor: AppThemeColor.bluePrimary,
           onPressed: () {
-            Get.to(() => const AddContactScreen());
+            Get.to(() => AddContactScreen(contactCubit: _contactCubit));
           },
           child: Icon(
             Icons.add,
@@ -100,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ]
             : [],
       ),
-      body: _pages[_currentIndex],
+      body: pages[_currentIndex],
     );
   }
 }

@@ -34,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
     String? userId = prefs.getString('userId');
 
     if (userId != null) {
-      Get.to(const HomeScreen());
+      Get.off(const HomeScreen());
     }
   }
 

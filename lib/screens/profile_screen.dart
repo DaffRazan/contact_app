@@ -1,3 +1,4 @@
+import 'package:contact_app/cubits/contact/contact_cubit.dart';
 import 'package:contact_app/models/contact.dart';
 import 'package:contact_app/screens/update_contact_screen.dart';
 import 'package:contact_app/utils/color.dart';
@@ -8,7 +9,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final ContactCubit contactCubit;
+
+  const ProfileScreen({super.key, required this.contactCubit});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -90,13 +93,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   onPressed: () async {
-                    final updatedContact =
-                        await Get.to<Contact>(() => UpdateContactDetail(
-                              firstName: firstName,
-                              lastName: secondName,
-                              email: loggedInEmail,
-                              dob: loggedInDob,
-                            ));
+                    //TODO Update profile data bugged
+
+                    final updatedContact = await Get.to<Contact>(
+                      () => UpdateContactDetail(
+                        contactCubit: widget.contactCubit,
+                        contact: Contact(
+                          id: loggedInId,
+                          firstName: firstName,
+                          lastName: secondName,
+                          dob: loggedInDob,
+                          email: loggedInEmail,
+                        ),
+                        loggedInId: loggedInId,
+                        isProfile: true,
+                      ),
+                    );
 
                     if (updatedContact != null) {
                       _updateContact(updatedContact);
